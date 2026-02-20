@@ -1,7 +1,7 @@
-
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import Autoplay from "embla-carousel-autoplay"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -13,8 +13,18 @@ import {
     CarouselPrevious,
 } from "@/components/ui/carousel"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { supabase } from "@/lib/supabase"
 
-const testimonials = [
+interface Testimonial {
+    name: string
+    title: string
+    company: string
+    review: string
+    avatar: string
+    initials: string
+}
+
+const defaultTestimonials: Testimonial[] = [
     {
         name: "Alex Johnson",
         title: "CTO",
@@ -64,6 +74,31 @@ const testimonials = [
 
 export function Testimonials() {
     const [api, setApi] = React.useState<any>()
+    const [testimonials, setTestimonials] = useState<Testimonial[]>(defaultTestimonials)
+
+    useEffect(() => {
+        const fetchContent = async () => {
+            const { data: content } = await supabase
+                .from('site_content')
+                .select('content_value')
+                .eq('section', 'testimonials')
+                .eq('content_key', 'list')
+                .single()
+
+            if (content?.content_value) {
+                const val = content.content_value as { items?: Testimonial[] }
+                if (val.items && val.items.length > 0) {
+                    setTestimonials(
+                        val.items.map((t) => ({
+                            ...t,
+                            initials: t.initials || t.name.split(' ').map((n) => n[0]).join(''),
+                        }))
+                    )
+                }
+            }
+        }
+        fetchContent()
+    }, [])
 
     return (
         <section id="testimonials" className="bg-muted/30 py-20">
@@ -114,7 +149,7 @@ export function Testimonials() {
                                             </CardHeader>
                                             <CardContent>
                                                 <p className="text-muted-foreground italic">
-                                                    "{testimonial.review}"
+                                                    &ldquo;{testimonial.review}&rdquo;
                                                 </p>
                                             </CardContent>
                                         </Card>

@@ -1,17 +1,53 @@
-
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ImagesSlider } from "@/components/ui/images-slider"
+import { supabase } from "@/lib/supabase"
+
+const defaultData = {
+    title: "Craft layout",
+    titleHighlight: "in minutes.",
+    subtitle: "Build beautiful, responsive landing pages with our easy-to-use component library. Designed for speed (and comfort).",
+    cta: "Get Started",
+}
+
+const defaultImages = [
+    "https://images.unsplash.com/photo-1485433592409-9018e83a1f0d?q=80&w=1814&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1483982258113-b72862e6cff6?q=80&w=3456&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1482189349482-3defd547e0e9?q=80&w=2848&auto=format&fit=crop",
+]
 
 export function Hero() {
-    const images = [
-        "https://images.unsplash.com/photo-1485433592409-9018e83a1f0d?q=80&w=1814&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1483982258113-b72862e6cff6?q=80&w=3456&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1482189349482-3defd547e0e9?q=80&w=2848&auto=format&fit=crop",
-    ];
+    const [data, setData] = useState(defaultData)
+    const [images, setImages] = useState(defaultImages)
+
+    useEffect(() => {
+        const fetchContent = async () => {
+            const { data: content } = await supabase
+                .from('site_content')
+                .select('content_value')
+                .eq('section', 'hero')
+                .eq('content_key', 'main')
+                .single()
+
+            if (content?.content_value) {
+                const val = content.content_value as Record<string, string>
+                setData({
+                    title: val.title || defaultData.title,
+                    titleHighlight: val.titleHighlight || defaultData.titleHighlight,
+                    subtitle: val.subtitle || defaultData.subtitle,
+                    cta: val.cta || defaultData.cta,
+                })
+                if (val.imageUrl) {
+                    setImages([val.imageUrl, ...defaultImages.slice(1)])
+                }
+            }
+        }
+        fetchContent()
+    }, [])
 
     return (
         <ImagesSlider className="min-h-[90vh]" images={images}>
@@ -44,19 +80,19 @@ export function Hero() {
                 <motion.h1
                     className="text-5xl font-extrabold tracking-tight text-white sm:text-6xl md:text-7xl lg:text-8xl mb-6"
                 >
-                    Craft layout <br />
+                    {data.title} <br />
                     <span className="bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400">
-                        in minutes.
+                        {data.titleHighlight}
                     </span>
                 </motion.h1>
 
                 <motion.p className="max-w-xl text-lg text-neutral-200 md:text-xl mb-10">
-                    Build beautiful, responsive landing pages with our easy-to-use component library. Designed for speed (and comfort).
+                    {data.subtitle}
                 </motion.p>
 
                 <div className="flex flex-col gap-4 sm:flex-row">
                     <Button size="lg" className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-0 gap-2 text-base">
-                        Get Started <ArrowRight className="h-4 w-4" />
+                        {data.cta} <ArrowRight className="h-4 w-4" />
                     </Button>
                     <Button size="lg" variant="outline" className="rounded-full border-white/20 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm text-base">
                         Learn More

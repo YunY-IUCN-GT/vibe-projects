@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Check } from "lucide-react"
 
@@ -14,8 +15,19 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+import { supabase } from "@/lib/supabase"
 
-const plans = [
+interface Plan {
+    name: string
+    description: string
+    monthlyPrice: number
+    yearlyPrice: number
+    features: string[]
+    cta: string
+    popular: boolean
+}
+
+const defaultPlans: Plan[] = [
     {
         name: "Basic",
         description: "Perfect for individuals and small projects.",
@@ -69,6 +81,45 @@ const plans = [
 
 export function Pricing() {
     const [isYearly, setIsYearly] = React.useState(false)
+    const [plans, setPlans] = useState<Plan[]>(defaultPlans)
+
+    useEffect(() => {
+        const fetchContent = async () => {
+            const { data: content } = await supabase
+                .from('site_content')
+                .select('content_value')
+                .eq('section', 'pricing')
+                .eq('content_key', 'plans')
+                .single()
+
+            if (content?.content_value) {
+                const val = content.content_value as { items?: Array<{
+                    name: string
+                    description: string
+                    monthlyPrice: string
+                    yearlyPrice: string
+                    features: string
+                    popular: boolean
+                }> }
+                if (val.items && val.items.length > 0) {
+                    setPlans(
+                        val.items.map((p) => ({
+                            name: p.name,
+                            description: p.description,
+                            monthlyPrice: Number(p.monthlyPrice) || 0,
+                            yearlyPrice: Number(p.yearlyPrice) || 0,
+                            features: typeof p.features === 'string'
+                                ? p.features.split('\n').filter(Boolean)
+                                : (p.features as unknown as string[]) ?? [],
+                            cta: 'Get Started',
+                            popular: p.popular ?? false,
+                        }))
+                    )
+                }
+            }
+        }
+        fetchContent()
+    }, [])
 
     return (
         <section id="pricing" className="py-20">

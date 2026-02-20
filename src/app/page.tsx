@@ -1,8 +1,8 @@
-
 import { Hero } from "@/components/layout/hero"
 import { Features } from "@/components/layout/features"
 import { Testimonials } from "@/components/layout/testimonials"
 import { Pricing } from "@/components/layout/pricing"
+import { Contact } from "@/components/layout/contact"
 
 export default function Home() {
   return (
@@ -11,10 +11,7 @@ export default function Home() {
       <Features />
       <Testimonials />
       <Pricing />
-
-      <section id="contact" className="h-screen flex items-center justify-center bg-muted/80">
-        <h1 className="text-4xl font-bold">Contact Section</h1>
-      </section>
+      <Contact />
     </div>
   );
 }
