@@ -55,7 +55,18 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
 
--- 5. RPC 함수: admin에서 유저 목록 조회 (auth.users + user_profiles 조인)
+-- 5. is_admin() 헬퍼 함수 (SECURITY DEFINER로 RLS 우회)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.user_profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 6. RPC 함수: admin에서 유저 목록 조회 (auth.users + user_profiles 조인)
 CREATE OR REPLACE FUNCTION get_admin_users()
 RETURNS TABLE (
   id UUID,
@@ -80,7 +91,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. RLS 정책
+-- 7. RLS 정책
 
 -- site_content: 누구나 읽기 가능, admin만 수정
 ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
@@ -91,12 +102,7 @@ CREATE POLICY "Anyone can read site_content"
 
 CREATE POLICY "Admin can manage site_content"
   ON site_content FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- contact_inquiries: 누구나 INSERT, admin만 SELECT/UPDATE
 ALTER TABLE contact_inquiries ENABLE ROW LEVEL SECURITY;
@@ -107,21 +113,11 @@ CREATE POLICY "Anyone can insert contact_inquiries"
 
 CREATE POLICY "Admin can read contact_inquiries"
   ON contact_inquiries FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 CREATE POLICY "Admin can update contact_inquiries"
   ON contact_inquiries FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- user_profiles: 본인 읽기 + admin 전체 관리
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -132,9 +128,4 @@ CREATE POLICY "Users can read own profile"
 
 CREATE POLICY "Admin can manage all profiles"
   ON user_profiles FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin());
